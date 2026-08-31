@@ -1,0 +1,70 @@
+PRAGMA foreign_keys = ON
+
+CREATE TABLE IF NOT EXISTS Staff (
+  StaffID INTEGER NOT NULL PRIMARY KEY,
+  StaffFirstName TEXT NOT NULL,
+  StaffLastName TEXT NOT NULL,
+  StaffPosition TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Customers (
+  CustomerID INTEGER NOT NULL PRIMARY KEY,
+  CustomerFirstName TEXT NOT NULL,
+  CustomerLastName TEXT NOT NULL,
+  CustomerPhone INTEGER UNIQUE NOT NULL,
+  CustomerEmail TEXT UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS CustomerOrder (
+  OrderID INTEGER NOT NULL PRIMARY KEY,
+  StaffID INTEGER NOT NULL,
+  CustomerID INTEGER NOT NULL,
+  OrderPrice REAL NOT NULL,
+  OrderDate TEXT NOT NULL,
+  OrderTime INTEGER NOT NULL,
+  FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),
+  FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
+);
+
+CREATE TABLE IF NOT EXISTS MenuItems (
+  ItemID INTEGER NOT NULL PRIMARY KEY,
+  ItemName TEXT UNIQUE NOT NULL,
+  ItemPrice REAL NOT NULL,
+  ItemCostToMake REAL NOT NULL);
+
+CREATE TABLE IF NOT EXISTS Ingredients (
+  IngredientID INTEGER NOT NULL PRIMARY KEY,
+  IngrName TEXT NOT NULL,
+  IngrPrice REAL NOT NULL,
+  IngrStock INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS OrderMenuItems (
+  OrderID INTEGER NOT NULL,
+  ItemID INTEGER NOT NULL,
+  ItemAmount INTEGER NOT NULL,
+  FOREIGN KEY (OrderID) REFERENCES CustomerOrder(OrderID),
+  FOREIGN KEY (ItemID) REFERENCES MenuItems(ItemID)
+);
+
+CREATE TABLE IF NOT EXISTS MenuIngredients (
+  ItemID INTEGER NOT NULL,
+  IngredientID INTEGER NOT NULL,
+  IngrAmount REAL NOT NULL,
+  FOREIGN KEY (ItemID) REFERENCES MenuItems(ItemID),
+  FOREIGN KEY (IngredientID) REFERENCES Ingredients(IngredientID)
+);
+
+CREATE TABLE IF NOT EXISTS CustomersLogin (
+  CustomerID INTEGER NOT NULL,
+  CustomerUsername TEXT UNIQUE NOT NULL,
+  CustomerPassHex INTEGER NOT NULL,
+  FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+
+CREATE TABLE IF NOT EXISTS StaffLogin (
+  StaffID INTEGER,
+  StaffUsername TEXT,
+  StaffPassHex INTEGER,
+  FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
+);
