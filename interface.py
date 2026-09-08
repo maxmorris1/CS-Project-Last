@@ -3,6 +3,28 @@ import sys
 import os
 import msvcrt
 import shutil
+import subprocess
+from pathlib import Path
+from time import sleep
+
+def install_requirements():
+    requirements = Path(__file__).with_name("requirements.txt")
+
+    try:
+        import pynput
+    except ImportError:
+        print("Installing required packages...")
+        subprocess.check_call([
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            str(requirements),
+        ])
+
+install_requirements()
+
 from pynput import keyboard
 
 def clear_terminal():
