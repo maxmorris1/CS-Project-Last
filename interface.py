@@ -1,41 +1,92 @@
-import keyboard
 import time
-from rich.markup import escape
-from rich.console import Console
-from rich.table import Table
-from rich.live import Live
-from rich.panel import Panel
+import sys
+import os
+import msvcrt
+import shutil
 
-def create_menu(options, selected_idx):
-    table = Table(show_header=False, box=None)
-    for i, opt in enumerate(options):
-        # Apply a bold reverse style for the currently selected item
-        style = "bold magenta reverse" if i == selected_idx else "dim"
-        table.add_row(f"[{style}] {opt} [/{style}]")
-    return Panel(table, title="Interactive Menu", border_style="cyan")
+def clear_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-console = Console()
-menu_items = ["🚀 Start Project", "⚙️  Settings", "❌ Exit"]
-idx = 0
-done = False
+clear_terminal()
 
-with Live(create_menu(menu_items, idx), screen=True, auto_refresh=False) as live:
-    while not done:
-        live.update(create_menu(menu_items, idx), refresh=True)
+def limit_input(prompt, max_chars):
+    print(prompt, end="", flush=True)
+    user_input = ""
+    
+    while True:
+        char = msvcrt.getch()
+        
+        if char in (b'\r', b'\n'):
+            print()
+            break
+            
+        if char == b'\x08':
+            if len(user_input) > 0:
+                user_input = user_input[:-1]
+                sys.stdout.write('\b \b')
+                sys.stdout.flush()
+            continue
+            
+        if len(user_input) < max_chars:
+            char_str = char.decode('utf-8', errors='ignore')
+            if char_str.isprintable() and len(char_str) > 0:
+                user_input += char_str
+                sys.stdout.write(char_str)
+                sys.stdout.flush()
+                
+    return user_input
 
-        # keyboard.read_event() intercepts the key without needing Enter
-        event = keyboard.read_event()
-        if event.event_type == keyboard.KEY_DOWN:
-            if event.name == 'up' and idx > 0:
-                idx -= 1
-            elif event.name == 'down' and idx < len(menu_items) - 1:
-                idx += 1
-            elif event.name == 'enter':
-                done = True
-            elif event.name == 'q':
-                done = True
+def padding(text):
+    columns, _ = shutil.get_terminal_size()
+    
+    padding = (columns - len(text)) // 2
+    if padding > 0:
+        sys.stdout.write(" " * padding)
+        sys.stdout.flush()
 
-        # Small delay to prevent high CPU usage in the loop
-        time.sleep(0.05)
+def type_out(text, delay=0.015):
+    padding(text)
+    for char in text:
+      sys.stdout.write(char)
+      sys.stdout.flush()
+      time.sleep(delay)
+    print()  
 
-console.print(f"You selected:{menu_items[idx]}", markup=False)
+type_out(' '+'_'*48+' ')
+type_out('|'+' '*48+'|')
+type_out('|'+' '*18+'Staff Login'+' '*19+'|')
+type_out('|'+' '*48+'|')
+type_out('|'+' '*10+'Staff Username:'+' '*23+'|')
+type_out('|'+' '*10+'Staff Password:'+' '*23+'|')
+type_out('|'+' '*48+'|')
+type_out('|'+'_'*48+'|')
+sys.stdout.write("\033[4A\r")
+sys.stdout.flush()
+
+padding(' '*50)
+staff_username = limit_input('|'+' '*10+'Staff Username:', 22)
+while len(staff_username) < 4:
+    sys.stdout.write("\033[1A\r")
+    sys.stdout.flush()  
+    padding(' '*50)
+    print('|'+' '*10+'Staff Username:'+' '*23+'|')
+    sys.stdout.write("\033[1A\r")
+    sys.stdout.flush()  
+    padding(' '*50)
+    staff_username = limit_input('|'+' '*10+'Staff Username:', 22)
+
+
+padding(' '*50)
+staff_password = limit_input('|'+' '*10+'Staff Password:', 22)
+while len(staff_password) < 4:
+    sys.stdout.write("\033[1A\r")
+    sys.stdout.flush()  
+    padding(' '*50)
+    print('|'+' '*10+'Staff Password:'+' '*23+'|')
+    sys.stdout.write("\033[1A\r")
+    sys.stdout.flush()  
+    padding(' '*50)
+    staff_password = limit_input('|'+' '*10+'Staff Password:', 22)
+
+sys.stdout.write("\033[2B") 
+sys.stdout.flush()
