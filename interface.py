@@ -5,7 +5,6 @@ import msvcrt
 import shutil
 import subprocess
 from pathlib import Path
-from time import sleep
 
 def install_requirements():
     requirements = Path(__file__).with_name("requirements.txt")
