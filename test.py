@@ -67,5 +67,81 @@ print("Window maximized! Holding for 5 seconds of testing...")
 time.sleep(5)
 print("Testing complete.")
 '''
+import threading
+import time
+import sys
+import shutil
+
+def clear_terminal():
+    sys.stdout.write("\033[2J\033[H")
+    sys.stdout.flush()
+
+def type_box_side(side_name, start_col, width, height, delay=0.002):
+    """
+    Draws a box border on a specific thread.
+    Positions are calculated relative to the start_col.
+    """
+    # 1. Draw Top Border
+    sys.stdout.write(f"\033[1;{start_col}H╔" + "═" * (width - 2) + "╗")
+    sys.stdout.flush()
+    time.sleep(delay)
+    
+    # 2. Draw Side Borders Concurrently line by line
+    for row in range(2, height):
+        # Left wall of this box
+        sys.stdout.write(f"\033[{row};{start_col}H║")
+        # Right wall of this box
+        sys.stdout.write(f"\033[{row};{start_col + width - 1}H║")
+        sys.stdout.flush()
+        time.sleep(delay)
+        
+    # 3. Draw Bottom Border
+    sys.stdout.write(f"\033[{height};{start_col}H╚" + "═" * (width - 2) + "╝")
+    sys.stdout.flush()
+
+def draw_split_interface():
+    clear_terminal()
+    
+    # Hide the cursor during rendering so it doesn't flicker
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+    
+    # Fetch your newly maximized grid bounds
+    term_width, term_height = shutil.get_terminal_size()
+    
+    # Calculate dimensions for side-by-side boxes with a 2-character center gap
+    usable_height = term_height - 2
+    box_width = (term_width - 6) // 2
+    
+    # Exact starting column positions
+    left_start_col = 2
+    right_start_col = left_start_col + box_width + 2
+    
+    # Create threads for the left and right layout components
+    thread_left = threading.Thread(
+        target=type_box_side, 
+        args=("LeftBox", left_start_col, box_width, usable_height, 0.005)
+    )
+    thread_right = threading.Thread(
+        target=type_box_side, 
+        args=("RightBox", right_start_col, box_width, usable_height, 0.005)
+    )
+    
+    # Spin both loops up at once
+    thread_left.start()
+    thread_right.start()
+    
+    # Wait for both borders to finish drawing
+    thread_left.join()
+    thread_right.join()
+    
+    # Restore cursor positioning safely below the boxes
+    sys.stdout.write(f"\033[{term_height};1H")
+    sys.stdout.write("\033[?25h")
+    sys.stdout.flush()
+
+# Run the split panel draw loop
+draw_split_interface()
+input("\nPress Enter to proceed...")
 
 

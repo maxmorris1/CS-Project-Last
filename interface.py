@@ -5,9 +5,27 @@ import msvcrt
 import shutil
 import subprocess
 import ctypes
+import threading
+from ctypes import wintypes
+import shutil
 from time import sleep
 from pathlib import Path
-from QueryDB import db_action
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+os.chdir(SCRIPT_DIR)
+
+try:
+    from QueryDB import db_action
+except ImportError as e:
+    print(f"CRITICAL ERROR: Could not find QueryDB.py in {SCRIPT_DIR}!")
+    print(e)
+    input("\nPress Enter to exit...")
+    sys.exit(1)
+
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+user32 = ctypes.WinDLL('user32', use_last_error=True)
+
+SW_MAXIMIZE = 3
 
 RED = "\033[31m"
 BOLD_GREEN = "\033[1;32m"
@@ -35,6 +53,14 @@ from pynput import keyboard
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+def get_maximized_size():
+    from pynput.keyboard import Controller, Key
+    keyboard_controller = Controller()
+    keyboard_controller.press(Key.f11)
+    keyboard_controller.release(Key.f11)
+    time.sleep(0.15) 
+    return shutil.get_terminal_size()
 
 def repeatLine(line: str, repeat: int) -> None:
     for _ in range(repeat):
@@ -394,21 +420,76 @@ def staff_signup():
         return 'BACK', 'BACK', 'BACK'
     return staff_Name, staff_Lastname, staff_Position
 
+def box_print(sidename, start_col, width, height, delay=0.005):
+    sys.stdout.write(f"\033[1;{start_col}H╔")
+    sys.stdout.flush()
+    time.sleep(delay)
+    for i in range(1, width - 1):
+        sys.stdout.write(f"\033[1;{start_col + i}H═")
+        sys.stdout.flush()
+        time.sleep(delay)
+    sys.stdout.write(f"\033[1;{start_col + width - 1}H╗")
+    sys.stdout.flush()
+    time.sleep(delay)
+    for row in range(2, height - 1):
+        sys.stdout.write(f"\033[{row};{start_col}H║")
+        sys.stdout.flush()
+        time.sleep(delay)
+        sys.stdout.write(f"\033[{row};{start_col + 1}H" + " " * (width - 2))
+        sys.stdout.flush()
+        sys.stdout.write(f"\033[{row};{start_col + width - 1}H║")
+        sys.stdout.flush()
+        time.sleep(delay)
+    sys.stdout.write(f"\033[{height - 1};{start_col}H╚")
+    sys.stdout.flush()
+    time.sleep(delay)
+    for i in range(1, width - 1):
+        sys.stdout.write(f"\033[{height - 1};{start_col + i}H═")
+        sys.stdout.flush()
+        time.sleep(delay)
+    sys.stdout.write(f"\033[{height - 1};{start_col + width - 1}H╝")
+    sys.stdout.flush()
 
 
-def staffinterface():
+def staffinterface(): 
     clear_terminal()
+    def on_global_press(key):
+        if key == keyboard.Key.esc:
+            os.system('cls' if os.name == 'nt' else 'clear')
+            sys.stdout.write("\033[?25h")
+            sys.stdout.flush()
+            os._exit(0)   
+    escape_listener = keyboard.Listener(on_press=on_global_press)
+    escape_listener.start()
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+    terminal_width, terminal_height = get_maximized_size()
+    box_width = (terminal_width - 6) // 2
+    
+    left_col = 2
+    right_col = left_col + box_width + 2
+
+    thread_left = threading.Thread(
+        target=box_print, 
+        args=("LeftBox", left_col, box_width, terminal_height, 0.002)
+    )
+    thread_right = threading.Thread(
+        target=box_print, 
+        args=("RightBox", right_col, box_width, terminal_height, 0.002)
+    )
+    
+    thread_left.start()
+    thread_right.start()
+    thread_left.join()
+    thread_right.join()
+    
+    sys.stdout.write(f"\033[{terminal_height};1H")
     sys.stdout.write("\033[?25h")
-    hwnd = ctypes.windll.user32.GetForegroundWindow()
-    ctypes.windll.user32.ShowWindow(hwnd, 3)
-    terminal_width, terminal_height = shutil.get_terminal_size()
-    sys.stdout.write("\033[1B\r")
-    sys.stdout.flush() 
-    halfwidth = (terminal_width - 4) // 2
-    type_out_nopadding('╔'+'═'*halfwidth+'╗')
-    repeatLine("padding(2); type_out_nopadding('║'+' '*halfwidth+'║')", terminal_height-4)
-    padding(' '*50); print('╚'+'═'*halfwidth+'╝')
-    time.sleep(3)
+    sys.stdout.flush()
+
+    sys.stdout.write(f"\033[5;0H")
+    sys.stdout.flush()
+
 
 
 def main():
@@ -428,5 +509,6 @@ def main():
                 db_action('new staff credentials', info_array)
         break 
     '''
-    staffinterface()     
+    staffinterface()
+    input("Press Enter to close...")
 main()
