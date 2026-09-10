@@ -4,6 +4,7 @@ import os
 import msvcrt
 import shutil
 import subprocess
+import ctypes
 from time import sleep
 from pathlib import Path
 from QueryDB import db_action
@@ -34,6 +35,10 @@ from pynput import keyboard
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+def repeatLine(line: str, repeat: int) -> None:
+    for _ in range(repeat):
+        exec(line)
 
 def limit_input(prompt, max_chars):
     print(prompt, end="", flush=True)
@@ -87,9 +92,16 @@ def type_out(text, delay=0.002):
       time.sleep(delay)
     print()  
 
+def type_out_nopadding(text, delay=0.002):
+    for char in text:
+      sys.stdout.write(char)
+      sys.stdout.flush()
+      time.sleep(delay)
+    print()  
+
 def staff_or_customer():
     clear_terminal()
-    padding_top(19)
+    padding_top(21)
     sys.stdout.write("\033[?25h")
     type_out('╔'+'═'*48+'╗')
     type_out('║'+' '*48+'║')
@@ -110,10 +122,12 @@ def staff_or_customer():
     type_out('║'+' '*48+'║')
     type_out('║'+' '*48+'║')
     type_out('╚'+'═'*48+'╝')
+    type_out('║'+' '+'Esc: Back    Arrows: Select'+' '*20+'║')
+    type_out('╚'+'═'*48+'╝')
     role = 'Staff'
     sys.stdout.write("\033[?25l")
     sys.stdout.flush()
-    sys.stdout.write("\033[9A\r")
+    sys.stdout.write("\033[11A\r")
     sys.stdout.flush()
     padding(' '*50)
     print('║'+' '*15+f'{BOLD_GREEN}> Staff{RESET}'+' '*26+'║')
@@ -155,7 +169,7 @@ def staff_or_customer():
 
 def login(role):
     clear_terminal()
-    padding_top(19)
+    padding_top(21)
     sys.stdout.write("\033[?25h")
     sys.stdout.flush()
     padding(' '*50); print('╔'+'═'*48+'╗')
@@ -177,6 +191,8 @@ def login(role):
     padding(' '*50); print('║'+' '*48+'║')
     padding(' '*50); print('║'+' '*48+'║')
     padding(' '*50); print('╚'+'═'*48+'╝')
+    padding(' '*50); print('║'+' '+'Esc: Back    Enter: Continue'+' '*19+'║')
+    padding(' '*50); print('╚'+'═'*48+'╝')
     columns, _ = shutil.get_terminal_size()
     left_margin = (columns - 50) // 2
     if role == 'Staff':
@@ -185,7 +201,7 @@ def login(role):
     else:
         role_margin = 17
         role_input_limit = 19
-    sys.stdout.write(f"\033[12A\r\033[{left_margin + 1 + role_margin}C")
+    sys.stdout.write(f"\033[14A\r\033[{left_margin + 1 + role_margin}C")
     sys.stdout.flush()
     for char in f"{role} Login":
         sys.stdout.write(char)
@@ -275,7 +291,7 @@ def login(role):
 
 def staff_signup():
     clear_terminal()
-    padding_top(19)
+    padding_top(21)
     sys.stdout.write("\033[?25h")
     sys.stdout.flush()
     padding(' '*50); print('╔'+'═'*48+'╗')
@@ -297,6 +313,8 @@ def staff_signup():
     padding(' '*50); print('║'+' '*48+'║')
     padding(' '*50); print('║'+' '*48+'║')
     padding(' '*50); print('╚'+'═'*48+'╝')
+    padding(' '*50); print('║'+' '+'Esc: Back    Enter: Continue'+' '*19+'║')
+    padding(' '*50); print('╚'+'═'*48+'╝')
     columns, _ = shutil.get_terminal_size()
     left_margin = (columns - 50) // 2
     title = "New Staff Member"
@@ -304,7 +322,7 @@ def staff_signup():
     question_2 = "Last Name:"
     question_3 = "Staff Position:"
     inner_title_margin = (48 - len(title)) // 2
-    sys.stdout.write(f"\033[13A\r\033[{left_margin + 1 + inner_title_margin}C")
+    sys.stdout.write(f"\033[15A\r\033[{left_margin + 1 + inner_title_margin}C")
     sys.stdout.flush()
     for char in title:
         sys.stdout.write(char)
@@ -376,7 +394,25 @@ def staff_signup():
         return 'BACK', 'BACK', 'BACK'
     return staff_Name, staff_Lastname, staff_Position
 
+
+
+def staffinterface():
+    clear_terminal()
+    sys.stdout.write("\033[?25h")
+    hwnd = ctypes.windll.user32.GetForegroundWindow()
+    ctypes.windll.user32.ShowWindow(hwnd, 3)
+    terminal_width, terminal_height = shutil.get_terminal_size()
+    sys.stdout.write("\033[1B\r")
+    sys.stdout.flush() 
+    halfwidth = (terminal_width - 4) // 2
+    type_out_nopadding('╔'+'═'*halfwidth+'╗')
+    repeatLine("padding(2); type_out_nopadding('║'+' '*halfwidth+'║')", terminal_height-4)
+    padding(' '*50); print('╚'+'═'*halfwidth+'╝')
+    time.sleep(3)
+
+
 def main():
+    '''
     while True:
         role = staff_or_customer()
         username, password = login(role)
@@ -390,5 +426,7 @@ def main():
                     continue
                 info_array = [[username, password], staffName, staffLastname, staffPosition]
                 db_action('new staff credentials', info_array)
-        break
+        break 
+    '''
+    staffinterface()     
 main()
