@@ -67,6 +67,7 @@ print("Window maximized! Holding for 5 seconds of testing...")
 time.sleep(5)
 print("Testing complete.")
 '''
+'''
 import threading
 import time
 import sys
@@ -143,5 +144,37 @@ def draw_split_interface():
 # Run the split panel draw loop
 draw_split_interface()
 input("\nPress Enter to proceed...")
+'''
+
+def print_table(headers, data, total_width):
+    num_cols = len(headers)
+    # Calculate column width factoring in a 3-character spacer ' | ' between columns
+    col_width = (total_width - (3 * (num_cols - 1))) // num_cols
+    
+    # Format string for left-aligned columns truncated to max width
+    fmt = "   ".join([f"{{:<{col_width}.{col_width}}}" for _ in range(num_cols)])
+    
+    # 1. Print headers
+    print(fmt.format(*headers))
+    
+    # 2. Print ONLY one line between column names and data
+    print("─" * total_width)
+    
+    # 3. Print data rows
+    for row in data:
+        print(fmt.format(*[str(item) for item in row]))
+
+# --- Example Usage ---
+headers = ["Product Name", "Category", "Price"]
+data = [
+    ["Wireless Mouse", "Electronics", "$25.00"],
+    ["Mechanical Keyboard with RGB backlight", "Electronics", "$89.99"],
+    ["Coffee Mug", "Kitchenware", "$12.50"]
+]
+
+print_table(headers, data, total_width=80)
+
+
+
 
 

@@ -8,6 +8,7 @@ import ctypes
 import threading
 from ctypes import wintypes
 import shutil
+import sqlite3
 from time import sleep
 from pathlib import Path
 
@@ -453,6 +454,8 @@ def box_print(sidename, start_col, width, height, delay=0.005):
 
 def staffinterface(): 
     clear_terminal()
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
     def on_global_press(key):
         if key == keyboard.Key.esc:
             os.system('cls' if os.name == 'nt' else 'clear')
@@ -487,7 +490,25 @@ def staffinterface():
     sys.stdout.write("\033[?25h")
     sys.stdout.flush()
 
-    sys.stdout.write(f"\033[5;0H")
+    sys.stdout.write(f"\033[3;1H")
+    sys.stdout.flush()
+
+    def move_curser_in(padding, vertical=0, up_or_down='B'):
+        sys.stdout.write(f"\033[{vertical}{up_or_down}\r\033[{padding}C")
+        sys.stdout.flush()
+
+    cursor.execute("SELECT * FROM customers LIMIT 0")
+    column_names = [description[0] for description in cursor.description]
+
+    num_cols = len(column_names)
+    col_width = (box_width-3 - (3 * (num_cols - 1))) // num_cols
+    fmt = "  ".join([f"{{:<{col_width}.{col_width}}}" for _ in range(num_cols)])
+    move_curser_in(7); type_out_nopadding('Customers Table', 0.03)
+    move_curser_in(5, 2, 'B'); type_out_nopadding(fmt.format(*column_names), 0.02)
+    move_curser_in(4); type_out_nopadding('─'.strip()*(box_width-2-4), 0.02)
+    conn.close()
+
+    sys.stdout.write(f"\033[{terminal_height};1H")
     sys.stdout.flush()
 
 
