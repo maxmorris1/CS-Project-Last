@@ -421,35 +421,52 @@ def staff_signup():
         return 'BACK', 'BACK', 'BACK'
     return staff_Name, staff_Lastname, staff_Position
 
-def box_print(sidename, start_col, width, height, delay=0.005):
-    sys.stdout.write(f"\033[1;{start_col}H╔")
+def box_print(start_col, start_row, width, height, delay=0.005):
+    sys.stdout.write(f"\033[{start_row};{start_col}H╔")
     sys.stdout.flush()
     time.sleep(delay)
+
     for i in range(1, width - 1):
-        sys.stdout.write(f"\033[1;{start_col + i}H═")
+        sys.stdout.write(f"\033[{start_row};{start_col + i}H═")
         sys.stdout.flush()
         time.sleep(delay)
-    sys.stdout.write(f"\033[1;{start_col + width - 1}H╗")
+
+    sys.stdout.write(f"\033[{start_row};{start_col + width - 1}H╗")
     sys.stdout.flush()
     time.sleep(delay)
-    for row in range(2, height - 1):
-        sys.stdout.write(f"\033[{row};{start_col}H║")
+
+    for row in range(1, height - 1):
+        current_row = start_row + row
+
+        sys.stdout.write(f"\033[{current_row};{start_col}H║")
         sys.stdout.flush()
         time.sleep(delay)
-        sys.stdout.write(f"\033[{row};{start_col + 1}H" + " " * (width - 2))
-        sys.stdout.flush()
-        sys.stdout.write(f"\033[{row};{start_col + width - 1}H║")
+
+        sys.stdout.write(
+            f"\033[{current_row};{start_col + 1}H"
+            + " " * (width - 2)
+        )
         sys.stdout.flush()
         time.sleep(delay)
-    sys.stdout.write(f"\033[{height - 1};{start_col}H╚")
+
+        sys.stdout.write(f"\033[{current_row};{start_col + width - 1}H║")
+        sys.stdout.flush()
+        time.sleep(delay)
+
+    bottom_row = start_row + height - 1
+
+    sys.stdout.write(f"\033[{bottom_row};{start_col}H╚")
     sys.stdout.flush()
     time.sleep(delay)
+
     for i in range(1, width - 1):
-        sys.stdout.write(f"\033[{height - 1};{start_col + i}H═")
+        sys.stdout.write(f"\033[{bottom_row};{start_col + i}H═")
         sys.stdout.flush()
         time.sleep(delay)
-    sys.stdout.write(f"\033[{height - 1};{start_col + width - 1}H╝")
+
+    sys.stdout.write(f"\033[{bottom_row};{start_col + width - 1}H╝")
     sys.stdout.flush()
+    time.sleep(delay)
 
 
 def staffinterface(): 
@@ -469,22 +486,38 @@ def staffinterface():
     terminal_width, terminal_height = get_maximized_size()
     box_width = (terminal_width - 6) // 2
     
+    gap = 1
     left_col = 2
-    right_col = left_col + box_width + 2
+    right_col = left_col + (terminal_width - 6) // 2 + 2
 
-    thread_left = threading.Thread(
-        target=box_print, 
-        args=("LeftBox", left_col, box_width, terminal_height, 0.002)
-    )
-    thread_right = threading.Thread(
-        target=box_print, 
-        args=("RightBox", right_col, box_width, terminal_height, 0.002)
-    )
-    
-    thread_left.start()
-    thread_right.start()
-    thread_left.join()
-    thread_right.join()
+    left_width = right_col - left_col - 2
+    right_width = left_width
+
+    left_height = terminal_height
+    right_height = (terminal_height - 2 * gap) // 3
+
+    box_specs = [
+        (left_col, 1, left_width, left_height),
+        (right_col, 1, right_width, right_height),
+        (right_col, right_height + gap + 1, right_width, right_height),
+        (
+            right_col,
+            2 * (right_height + gap) + 1,
+            right_width,
+            right_height
+        ),
+    ]
+
+    threads = [
+        threading.Thread(target=box_print, args=spec + (0.005,))
+        for spec in box_specs
+    ]
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
     
     sys.stdout.write(f"\033[{terminal_height};1H")
     sys.stdout.write("\033[?25h")
@@ -494,20 +527,134 @@ def staffinterface():
     sys.stdout.flush()
 
     def move_curser_in(padding, vertical=0, up_or_down='B'):
-        sys.stdout.write(f"\033[{vertical}{up_or_down}\r\033[{padding}C")
+        if vertical:
+            sys.stdout.write(f"\033[{vertical}{up_or_down}")
+        sys.stdout.write(f"\r\033[{padding}C")
         sys.stdout.flush()
 
-    cursor.execute("SELECT * FROM customers LIMIT 0")
-    column_names = [description[0] for description in cursor.description]
+    def row_format(column_names):
+        num_cols = len(column_names)
+        col_width = (box_width-3 - (3 * (num_cols - 1))) // num_cols
+        fmt = "  ".join([f"{{:<{col_width}.{col_width}}}" for _ in range(num_cols)])
+        return fmt
 
-    num_cols = len(column_names)
-    col_width = (box_width-3 - (3 * (num_cols - 1))) // num_cols
-    fmt = "  ".join([f"{{:<{col_width}.{col_width}}}" for _ in range(num_cols)])
-    move_curser_in(7); type_out_nopadding('Customers Table', 0.03)
-    move_curser_in(5, 2, 'B'); type_out_nopadding(fmt.format(*column_names), 0.02)
-    move_curser_in(4); type_out_nopadding('─'.strip()*(box_width-2-4), 0.02)
-    conn.close()
+    def print_table(table_name):
+        sys.stdout.write("\033[H")
+        sys.stdout.flush()
+        cursor.execute(f"SELECT * FROM {table_name} LIMIT 0")
+        column_names = [description[0] for description in cursor.description]
 
+        move_curser_in(7, 3, 'B'); type_out_nopadding(f'{table_name.title()} Table', 0.03)
+        move_curser_in(5, 2, 'B'); type_out_nopadding(row_format(column_names).format(*column_names), 0.02)
+        move_curser_in(4); type_out_nopadding('─'.strip()*(box_width-2-4), 0.02)
+
+        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        row_count = cursor.fetchone()[0]
+        if row_count <= (terminal_height-1 - 14):
+            for num in range (row_count):
+                cursor.execute(f"SELECT * FROM {table_name} LIMIT 1 OFFSET ?", (num,))
+                row_values = cursor.fetchone()
+                if row_values is not None:
+                    move_curser_in(5); type_out_nopadding(row_format(row_values).format(*map(str,row_values)), 0.015)
+        else:
+            for num in range (terminal_height-1 - 14):
+                cursor.execute(f"SELECT * FROM {table_name} ORDER BY CustomerID LIMIT 1 OFFSET ?", (num,))
+                row_values = cursor.fetchone()
+                if row_values is not None:
+                    move_curser_in(5); type_out_nopadding(row_format(row_values).format(*map(str,row_values)), 0.015)
+        conn.close()
+
+    selection1 = 'New Table'
+    selection2 = 'Change Table Data'
+    selection3 = 'Make an Order'
+    selection4 = 'Exit'
+
+    def selection_padding(selection):
+        sys.stdout.write(f"\r\033[{left_width+2+(left_width-len(selection))//2}C")
+        sys.stdout.flush()
+
+    sys.stdout.write("\033[H")
+    sys.stdout.write(f"\033[{(left_height-1)//2}B")
+    sys.stdout.flush()
+    move_curser_in(1+((left_width-len('Table View'))//2)); type_out_nopadding('Table View', 0.03)
+    sys.stdout.write("\033[H")
+    sys.stdout.write(f"\033[{(right_height-4)//2}B")
+    sys.stdout.flush()
+    selection_padding(selection1); type_out_nopadding(BOLD_GREEN + selection1 + RESET, 0.03)
+    selection_padding(selection2); type_out_nopadding(selection2, 0.03)
+    selection_padding(selection3); type_out_nopadding(selection3, 0.03)
+    selection_padding(selection4); type_out_nopadding(selection4, 0.03)
+
+    pos = 'selection1'
+
+    sys.stdout.write("\033[4A\r")
+    sys.stdout.flush()
+
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+
+    def on_press(key):
+        nonlocal pos
+        if key == keyboard.Key.up or (hasattr(key, 'char') and key.char == 'w'):
+            if pos == 'selection2':
+                pos = 'selection1'
+                selection_padding(selection1); print(BOLD_GREEN + selection1 + RESET)
+                selection_padding(selection2); print(selection2)
+                selection_padding(selection3); print(selection3)
+                selection_padding(selection4); print(selection4)
+                sys.stdout.write("\033[4A\r")
+                sys.stdout.flush()
+            elif pos == 'selection3':
+                pos = 'selection2'
+                selection_padding(selection1); print(selection1)
+                selection_padding(selection2); print(BOLD_GREEN + selection2 + RESET)
+                selection_padding(selection3); print(selection3)
+                selection_padding(selection4); print(selection4)
+                sys.stdout.write("\033[4A\r")
+                sys.stdout.flush()
+            elif pos == 'selection4':
+                pos = 'selection3'
+                selection_padding(selection1); print(selection1)
+                selection_padding(selection2); print(selection2)
+                selection_padding(selection3); print(BOLD_GREEN + selection3 + RESET)
+                selection_padding(selection4); print(selection4)
+                sys.stdout.write("\033[4A\r")
+                sys.stdout.flush()
+        elif key == keyboard.Key.down or (hasattr(key, 'char') and key.char == 's'):
+            if pos == 'selection1':
+                pos = 'selection2'
+                selection_padding(selection1); print(selection1)
+                selection_padding(selection2); print(BOLD_GREEN + selection2 + RESET)
+                selection_padding(selection3); print(selection3)
+                selection_padding(selection4); print(selection4)
+                sys.stdout.write("\033[4A\r")
+            elif pos == 'selection2':
+                pos = 'selection3'
+                selection_padding(selection1); print(selection1)
+                selection_padding(selection2); print(selection2)
+                selection_padding(selection3); print(BOLD_GREEN + selection3 + RESET)
+                selection_padding(selection4); print(selection4)
+                sys.stdout.write("\033[4A\r")
+            elif pos == 'selection3':
+                pos = 'selection4'
+                selection_padding(selection1); print(selection1)
+                selection_padding(selection2); print(selection2)
+                selection_padding(selection3); print(selection3)
+                selection_padding(selection4); print(BOLD_GREEN + selection4 + RESET)
+                sys.stdout.write("\033[4A\r")
+        elif key == keyboard.Key.enter:
+            return False
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+    sys.stdout.write("\033[H")
+    sys.stdout.write(f"\033[{(left_height-1)//2}B")
+    sys.stdout.flush()
+    move_curser_in(1+((left_width-len('Table View'))//2)); print(' '*len('Table View'))
+    print_table('customers')
+    
+    sys.stdout.write("\033[?25h")
+    sys.stdout.flush()
     sys.stdout.write(f"\033[{terminal_height};1H")
     sys.stdout.flush()
 

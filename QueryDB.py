@@ -32,8 +32,8 @@ def db_action(action, info_array):
             credientials_check = 'Incorrect'
         return credientials_check
     elif action == 'new staff credentials':
-        new_credientials, firstName, lastName, staffPosition = info_array()
-        username, password = new_credientials()
+        new_credientials, firstName, lastName, staffPosition = info_array
+        username, password = new_credientials
         passHash = hashlib.sha256(password.encode('utf-8'))
         passHashDig = passHash.hexdigest()
         new_staff_member = (firstName, lastName, staffPosition) 
@@ -43,7 +43,7 @@ def db_action(action, info_array):
         cursor.execute("INSERT INTO StaffLogin (StaffID, StaffUsername, StaffPassHex) VALUES (?, ?, ?)", new_staff_creds)
     elif action == 'check customer credentials':
         username, password = info_array
-        cursor.execute("SELECT 1, CustomerPassHex FROM StaffLogin WHERE CustomerUsername = ?", (username,))
+        cursor.execute("SELECT 1, CustomerPassHex FROM CustomersLogin WHERE CustomerUsername = ?", (username,))
         row = cursor.fetchone()
         if row is None:
             return "New"
@@ -56,15 +56,16 @@ def db_action(action, info_array):
             credientials_check = 'Incorrect'
         return credientials_check
     elif action == 'new customer credentials':
-        new_credientials, firstName, lastName, phone, email = info_array()
-        username, password = new_credientials()
+        new_credientials, firstName, lastName, phone, email = info_array
+        username, password = new_credientials
         passHash = hashlib.sha256(password.encode('utf-8'))
         passHashDig = passHash.hexdigest()
         new_customer = (firstName, lastName, phone, email) 
-        cursor.execute("INSERT INTO Customer (CustomerFirstName, CustomerLastName, CustomerPhone, CustomerEmail) VALUES (?, ?, ?)", new_customer)
+        cursor.execute("INSERT INTO Customers (CustomerFirstName, CustomerLastName, CustomerPhone, CustomerEmail) VALUES (?, ?, ?, ?)", new_customer)
         customer_id = cursor.lastrowid
         new_customer_creds = (customer_id, username, passHashDig)
-        cursor.execute("INSERT INTO CustomerLogin (CustomerID, CustomerUsername, CustomerPassHex) VALUES (?, ?, ?)", new_customer_creds)
+        cursor.execute("INSERT INTO CustomersLogin (CustomerID, CustomerUsername, CustomerPassHex) VALUES (?, ?, ?)", new_customer_creds)
+    conn.commit()
     conn.close()
 
 
